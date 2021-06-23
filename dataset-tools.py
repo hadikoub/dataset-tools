@@ -5,6 +5,11 @@ import os
 import imutils
 import cv2
 import random
+from skimage.io import imread
+from skimage.transform import resize
+from skimage.feature import hog
+from skimage import exposure
+from skimage import img_as_ubyte
 
 # print(cv2.__version__)
 
@@ -240,6 +245,7 @@ def processCanny(img):
 
 	return gray
 
+
 def makeResize(img,filename,scale):
 	remakePath = args.output_folder + str(scale)+"/"
 	if not os.path.exists(remakePath):
@@ -391,7 +397,30 @@ def makeSquare(img,filename,scale):
 	if (args.rotate): rotateImage(img_sq,new_file,sqPath)
 
 	
-	
+def process_hog(img):
+	resized_img = resize(img, (128*4, 64*4))
+	fd, hog_image = hog(resized_img, orientations=9, pixels_per_cell=(8, 8),cells_per_block=(2, 2), visualize=True, multichannel=True)
+	resized_hog = resize(hog_image, (img.shape[0], img.shape[1]))
+	return  img_as_ubyte(resized_hog)
+def makeHog(img,filename, scale):
+	make_path = args.output_folder + "hog-"+str(scale)+"/"
+	if not os.path.exists(make_path):
+		os.makedirs(make_path)
+
+	img_copy = img.copy()
+	resized_hog = process_hog(img_copy)
+
+	# save out
+	if(args.file_extension == "png"):
+		new_file = os.path.splitext(filename)[0] + ".png"
+		cv2.imwrite(os.path.join(make_path, new_file), resized_hog, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+	elif(args.file_extension == "jpg"):
+		new_file = os.path.splitext(filename)[0] + ".jpg"
+		cv2.imwrite(os.path.join(make_path, new_file), resized_hog, [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+	if (args.mirror): flipImage(img_copy,new_file,make_path)
+	if (args.rotate): rotateImage(img_copy,new_file,make_path)
+
 
 def makeCanny(img,filename,scale):
 	make_path = args.output_folder + "canny-"+str(scale)+"/"
@@ -571,6 +600,8 @@ def processImage(img,filename):
 		makeSquareCrop(img,filename,args.max_size)
 	if args.process_type == "canny":
 		makeCanny(img,filename,args.max_size)
+	if args.process_type == "hog":
+		makeHog(img,filename,args.max_size)
 	if args.process_type == "canny-pix2pix":
 		makePix2Pix(img,filename,args.max_size)
 	if args.process_type == "crop_square_patch":
