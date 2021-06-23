@@ -421,6 +421,37 @@ def makeHog(img,filename, scale):
 	if (args.mirror): flipImage(img_copy,new_file,make_path)
 	if (args.rotate): rotateImage(img_copy,new_file,make_path)
 
+def processSplitPix2Pix(img):
+	h,w,c = img.shape 
+	label_img = img[0:h, 0:int(w/2)]
+	gt_img= img[0:h, int(w/2):w]
+
+	return label_img , gt_img
+
+def makeSplitPix2Pix(img, filename, scale):
+	make_path_label = args.output_folder + "split-pix2pix-"+str(scale)+"/"+"label"
+	make_path_gt = args.output_folder + "split-pix2pix-"+str(scale)+"/"+"gt"
+
+	if not os.path.exists(make_path_label):
+		os.makedirs(make_path_label)
+	if not os.path.exists(make_path_gt):
+		os.makedirs(make_path_gt)
+
+	img_copy = img.copy()
+	img_copy = image_resize(img_copy, max = scale)
+	label_img , gt_img = processSplitPix2Pix(img_copy)
+
+	# save out
+	if(args.file_extension == "png"):
+		new_file = os.path.splitext(filename)[0] + ".png"
+		cv2.imwrite(os.path.join(make_path_label, new_file), label_img, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+		cv2.imwrite(os.path.join(make_path_gt, new_file), gt_img, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+	elif(args.file_extension == "jpg"):
+		new_file = os.path.splitext(filename)[0] + ".jpg"
+		cv2.imwrite(os.path.join(make_path_label, new_file), label_img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+		cv2.imwrite(os.path.join(make_path_gt, new_file), gt_img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+	
 
 def makeCanny(img,filename,scale):
 	make_path = args.output_folder + "canny-"+str(scale)+"/"
@@ -602,6 +633,8 @@ def processImage(img,filename):
 		makeCanny(img,filename,args.max_size)
 	if args.process_type == "hog":
 		makeHog(img,filename,args.max_size)
+	if args.process_type == "split-pix2pix":
+		makeSplitPix2Pix(img,filename, args.max_size)
 	if args.process_type == "canny-pix2pix":
 		makePix2Pix(img,filename,args.max_size)
 	if args.process_type == "crop_square_patch":
